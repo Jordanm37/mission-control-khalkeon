@@ -39,6 +39,10 @@ import { ExecApprovalPanel } from '@/components/panels/exec-approval-panel'
 import { SystemMonitorPanel } from '@/components/panels/system-monitor-panel'
 import { ChatPagePanel } from '@/components/panels/chat-page-panel'
 import { ChatPanel } from '@/components/chat/chat-panel'
+import { EvidencePanel } from '@/components/panels/evidence-panel'
+import { ApprovalPanel } from '@/components/panels/approval-panel'
+import { OpenspecCardsPanel } from '@/components/panels/openspec-cards-panel'
+import { KhalkeonTerminalPanel } from '@/components/panels/khalkeon-terminal-panel'
 import { STORAGE_GATEWAY_URL } from '@/lib/device-identity'
 import { getPluginPanel } from '@/lib/plugins'
 import { shouldRedirectDashboardToHttps } from '@/lib/browser-security'
@@ -518,6 +522,8 @@ export default function Home() {
 
 const ESSENTIAL_PANELS = new Set([
   'overview', 'agents', 'tasks', 'chat', 'activity', 'logs', 'settings',
+  'cost-tracker', 'exec-approvals', 'alerts',
+  'evidence', 'khalkeon-approvals', 'openspec-cards', 'khalkeon-terminal',
 ])
 
 function ContentRouter({ tab }: { tab: string }) {
@@ -641,6 +647,14 @@ function ContentRouter({ tab }: { tab: string }) {
       return <ExecApprovalPanel />
     case 'chat':
       return <ChatPagePanel />
+    case 'evidence':
+      return <EvidencePanel />
+    case 'khalkeon-approvals':
+      return <ApprovalPanel />
+    case 'openspec-cards':
+      return <OpenspecCardsPanel />
+    case 'khalkeon-terminal':
+      return <KhalkeonTerminalPanel />
     default: {
       return renderPluginPanel(tab)
     }

@@ -62,6 +62,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    id: 'khalkeon',
+    label: 'KHALKEON',
+    items: [
+      { id: 'khalkeon-terminal', label: 'Terminal', icon: <MonitorIcon />, priority: false, essential: true },
+      { id: 'evidence', label: 'Evidence', icon: <ActivityIcon />, priority: false, essential: true },
+      { id: 'khalkeon-approvals', label: 'Approvals', icon: <ApprovalsIcon />, priority: false, essential: true },
+      { id: 'openspec-cards', label: 'OpenSpec', icon: <GitHubIcon />, priority: false, essential: true },
+    ],
+  },
+  {
     id: 'admin',
     label: 'ADMIN',
     items: [

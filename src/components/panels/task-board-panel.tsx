@@ -565,6 +565,20 @@ export function TaskBoardPanel() {
     return acc
   }, {} as Record<string, Task[]>)
 
+  // Group tasks within each status column by project_name (for cross-project view).
+  // When a column has tasks from multiple projects, render project group headers.
+  const tasksByStatusAndProject = statusColumns.reduce((acc, column) => {
+    const colTasks = tasksByStatus[column.key] || []
+    const byProject: Record<string, Task[]> = {}
+    for (const task of colTasks) {
+      const pname = task.project_name || 'No Project'
+      if (!byProject[pname]) byProject[pname] = []
+      byProject[pname].push(task)
+    }
+    acc[column.key] = byProject
+    return acc
+  }, {} as Record<string, Record<string, Task[]>>)
+
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task)
@@ -960,8 +974,19 @@ export function TaskBoardPanel() {
 
             {/* Column Body */}
             <div className="flex-1 p-2.5 space-y-2.5 min-h-32 h-full overflow-y-auto">
-              {tasksByStatus[column.key]?.map(task => (
-                <div
+              {(() => {
+                const byProject = tasksByStatusAndProject[column.key] || {}
+                const projectNames = Object.keys(byProject)
+                const showProjectHeaders = projectNames.length > 1
+                return projectNames.map(pname => (
+                  <div key={pname} className={showProjectHeaders ? 'space-y-1.5' : ''}>
+                    {showProjectHeaders && (
+                      <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider px-1 py-0.5 border-b border-border/20">
+                        {pname}
+                      </div>
+                    )}
+                    {byProject[pname].map(task => (
+                  <div
                   key={task.id}
                   draggable
                   role="button"
@@ -1127,7 +1152,10 @@ export function TaskBoardPanel() {
                     </div>
                   )}
                 </div>
-              ))}
+                    ))}
+                  </div>
+                ))
+              })()}
 
               {/* Empty State */}
               {tasksByStatus[column.key]?.length === 0 && (
@@ -2110,7 +2138,15 @@ function CreateTaskModal({
     assigned_to: '',
     tags: '',
     target_session: '',
+    execution_agent: '',  // khalkeon execution agent (metadata.agent)
   })
+  // Fetch bridge (khalkeon) execution agents — separate from MC task assignees.
+  const [bridgeAgents, setBridgeAgents] = useState<{name: string; kind: string}[]>([])
+  useEffect(() => {
+    apiFetch<{agents?: {name: string; kind: string}[]}>('/api/bridge/agents')
+      .then(data => setBridgeAgents(data.agents || []))
+      .catch(() => setBridgeAgents([]))  // bridge down -> no execution agents
+  }, [])
   const t = useTranslations('taskBoard')
   const agentSessions = useAgentSessions(formData.assigned_to || undefined)
   const [isRecurring, setIsRecurring] = useState(false)
@@ -2159,9 +2195,11 @@ function CreateTaskModal({
     if (formData.target_session) {
       metadata.target_session = formData.target_session
     }
+    if (formData.execution_agent) {
+      metadata.agent = formData.execution_agent
+    }
 
     try {
-      // raw:true preserves reading the validation error body (details/error) on
       // !response.ok — 400/422 validation responses that apiFetch would not throw on.
       const response = await apiFetch<Response>('/api/tasks', {
         method: 'POST',
@@ -2289,6 +2327,32 @@ function CreateTaskModal({
                   ))}
                 </select>
                 <p className="text-[11px] text-muted-foreground mt-1">Send task to an existing agent session instead of creating a new one.</p>
+              </div>
+            )}
+
+            {/* Execution agent (khalkeon) — separate from MC assignee.
+                Stored in metadata.agent so khalkeon_adapter dispatches with --agent <value>. */}
+            {bridgeAgents.length > 0 && (
+              <div>
+                <label htmlFor="create-execution-agent" className="block text-sm text-muted-foreground mb-1">
+                  Execution agent (khalkeon)
+                </label>
+                <select
+                  id="create-execution-agent"
+                  value={formData.execution_agent}
+                  onChange={(e) => setFormData(prev => ({ ...prev, execution_agent: e.target.value }))}
+                  className="w-full bg-surface-1 text-foreground border border-border rounded-md px-3 py-2 focus:outline-hidden focus:ring-1 focus:ring-primary/50"
+                >
+                  <option value="">Default (claude)</option>
+                  {bridgeAgents.map(agent => (
+                    <option key={agent.name} value={agent.name}>
+                      {agent.name} ({agent.kind})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Which coding agent runs on the VPS. Stored in metadata.agent.
+                </p>
               </div>
             )}
 
